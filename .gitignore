@@ -1,0 +1,16 @@
+processed_data_35_i/
+Results CSVs/
+OutputCSVFiles/
+SubjectsRawData/
+Segmentation/
+35Internal/
+45Internal/
+55Internal/
+35External/
+45External/
+55External/
+35Internal+35External/
+35I+35E+45I+45E/
+45Internal+45External/
+SurajCode/
+*.csv
