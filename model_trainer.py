@@ -105,6 +105,9 @@ def train_and_evaluate(csv_path, movementType):
     elif movementType == 'Internal45External45':
         featureImpSavingPath = '45Internal+45External/Results CSVs/features_imp.csv'
         pass
+    elif movementType == 'AllMovements':
+        featureImpSavingPath = 'AllMovements/Results CSVs/features_imp.csv'
+        pass
 
     top_features = get_top_features(X, y, featureImpSavingPath, 100)
 
@@ -392,6 +395,9 @@ def train_models(models, X, y, groups, group_kfold, movementType):
             pass
         elif movementType == 'Internal45External45':
             plotsSavingPath = '45Internal+45External/Results CSVs'
+            pass
+        elif movementType == 'AllMovements':
+            plotsSavingPath = 'AllMovements/Results CSVs'
             pass
 
 

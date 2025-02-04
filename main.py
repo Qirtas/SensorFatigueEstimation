@@ -5,12 +5,15 @@ Created on Wed Nov  6 12:25:09 2024
 @author: Marco Sica
 """
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from Segmentation.Segmentation import load_borg_scale, process_and_segment_data, add_borg_column_to_processed_data
 from Features.jerk_features import extract_all_jerk_features, print_missing_values, interpolate_missing_shoulder_features, fill_missing_values
 from Features.movement_frequency_features import extract_all_movement_frequency_features
 from Features.mpsd_features import extract_all_mpsd_features
 from Features.rt_variability_feature_extraction import extract_all_rt_variability_features
 from model_trainer import train_and_evaluate
+from FeatureImportance.featureImpVisualisation import load_feature_importance_scores, normalize_scores, aggregate_and_select_features, create_heatmap
 from Features.gyr_3axis_feature_extraction import extract_all_gyr_3axis_features
 from Features.zero_crossing_feature_extraction import extract_all_emg_zc_features
 from Features.emg_mav_features import extract_all_mav_features
@@ -1559,14 +1562,14 @@ if __name__ == "__main__":
     # # ****************************
 
     # Read both CSV files
-    internal_df = pd.read_csv('45Internal+45External/45InternalFeatures.csv')
-    external_df = pd.read_csv('45Internal+45External/45ExternalFeatures.csv')
-
-    combined_df = pd.concat([internal_df, external_df], axis=0, ignore_index=True)
-    combined_df.to_csv('45Internal+45External/45Combined_Internal_External_Features.csv', index=False)
-
-    Internal35External35_merged_features_file = "45Internal+45External/45Combined_Internal_External_Features.csv"
-    train_and_evaluate(Internal35External35_merged_features_file, 'Internal45External45')
+    # internal_df = pd.read_csv('45Internal+45External/45InternalFeatures.csv')
+    # external_df = pd.read_csv('45Internal+45External/45ExternalFeatures.csv')
+    #
+    # combined_df = pd.concat([internal_df, external_df], axis=0, ignore_index=True)
+    # combined_df.to_csv('45Internal+45External/45Combined_Internal_External_Features.csv', index=False)
+    #
+    # Internal35External35_merged_features_file = "45Internal+45External/45Combined_Internal_External_Features.csv"
+    # train_and_evaluate(Internal35External35_merged_features_file, 'Internal45External45')
 
 
 
@@ -1603,3 +1606,72 @@ if __name__ == "__main__":
     # combined_df.to_csv('35I+35E+45I+45E/CombinedFeatures.csv', index=False)
     # CombinedFeatures = "35I+35E+45I+45E/CombinedFeatures.csv"
     # train_and_evaluate(CombinedFeatures, '35i35e45i45e')
+
+
+
+
+
+
+    # ****************************
+    #   All Movements
+    # # ****************************
+
+    # Read both CSV files
+    # internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
+    # external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
+    #
+    # internal45_df = pd.read_csv('AllMovements/45InternalFeatures.csv')
+    # external45_df = pd.read_csv('AllMovements/45ExternalFeatures.csv')
+    #
+    # internal55_df = pd.read_csv('AllMovements/55InternalFeatures.csv')
+    # external55_df = pd.read_csv('AllMovements/55ExternalFeatures.csv')
+    #
+    # all_columns_match = (internal35_df.columns.tolist() == external35_df.columns.tolist() ==
+    #                      internal45_df.columns.tolist() == external45_df.columns.tolist() ==
+    #                      internal55_df.columns.tolist() == external55_df.columns.tolist()
+    #                      )
+    # print("All columns match:", all_columns_match)
+    #
+    # # Concatenate all dataframes vertically
+    # combined_df = pd.concat([internal35_df, external35_df, internal45_df, external45_df, internal55_df, external55_df],
+    #                         axis=0, ignore_index=True)
+    #
+    #
+    # combined_df.to_csv('AllMovements/CombinedFeatures.csv', index=False)
+    # CombinedFeatures = "AllMovements/CombinedFeatures.csv"
+    # train_and_evaluate(CombinedFeatures, 'AllMovements')
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------------------------------------------------------
+
+    # ****************************
+    #   Feature Importance
+    # # *********************
+
+
+    folder_path = "FeatureImportance"
+    feature_df = load_feature_importance_scores(folder_path)
+
+    top_features_df = aggregate_and_select_features(feature_df, top_n=15, aggregation='mean')
+
+    normalized_df = normalize_scores(top_features_df)
+
+    desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
+    normalized_df = normalized_df.reindex(columns=desired_order)
+
+    create_heatmap(normalized_df, title="")
+
+
+
+
