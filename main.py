@@ -1663,7 +1663,7 @@ if __name__ == "__main__":
     folder_path = "FeatureImportance"
     feature_df = load_feature_importance_scores(folder_path)
 
-    top_features_df = aggregate_and_select_features(feature_df, top_n=15, aggregation='mean')
+    top_features_df = aggregate_and_select_features(feature_df, top_n=15)
 
     normalized_df = normalize_scores(top_features_df)
 
