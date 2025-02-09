@@ -7,12 +7,16 @@ Created on Wed Nov  6 12:25:09 2024
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
+import glob
+import numpy as np
+from Segmentation.TrendAnalysis import validate_specific_data
 from Segmentation.Segmentation import load_borg_scale, process_and_segment_data, add_borg_column_to_processed_data
 from Features.jerk_features import extract_all_jerk_features, print_missing_values, interpolate_missing_shoulder_features, fill_missing_values
 from Features.movement_frequency_features import extract_all_movement_frequency_features
 from Features.mpsd_features import extract_all_mpsd_features
 from Features.rt_variability_feature_extraction import extract_all_rt_variability_features
-from model_trainer import train_and_evaluate
+from model_trainer import train_and_evaluate, train_baseline_model, train_all_test_individual
 from FeatureImportance.featureImpVisualisation import load_feature_importance_scores, normalize_scores, aggregate_and_select_features, create_heatmap
 from Features.gyr_3axis_feature_extraction import extract_all_gyr_3axis_features
 from Features.zero_crossing_feature_extraction import extract_all_emg_zc_features
@@ -56,6 +60,7 @@ if __name__ == "__main__":
         numer_of_subject=numer_of_subject
     )
     '''
+
 
     ############################################################
 
@@ -103,13 +108,14 @@ if __name__ == "__main__":
     '''
 
     ############################################################
-    ''''
+
+    '''
     # Base directory containing the segmented data
-    base_directory = "processed_data_35_e"
+    base_directory = "35Internal/processed_data_35_i"
     output_directory = "Features"
 
     # Configuration for feature extraction
-    subject = 6
+    subject = 1
     movement = "Internal"
     body_part = "Forearm"  # (Shoulder, Pelvis, Palm, Forearm, Torso)
     data_type = "gyr"  # Data type (e.g., acc, gyr, mag)
@@ -117,6 +123,7 @@ if __name__ == "__main__":
     # Plot the segmented data
     validate_specific_data(base_directory, subject, body_part, data_type)
     '''
+
     ############################################################
 
     '''
@@ -332,6 +339,7 @@ if __name__ == "__main__":
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
+
     '''
     segmented_folder_path = "35Internal/processed_data_35_i/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "35Internal/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
@@ -1616,7 +1624,7 @@ if __name__ == "__main__":
     #   All Movements
     # # ****************************
 
-    # Read both CSV files
+    # Read all CSV files
     # internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
     # external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
     #
@@ -1647,6 +1655,14 @@ if __name__ == "__main__":
 
 
 
+# -----------------------------------------------------------------------------------------------------------------------------
+
+    # ****************************
+    #   Baseline Model
+    # # **************************
+
+    # CombinedFeatures = "35Internal/Features/Extracted/allmerged_features_with_borg.csv"
+    # baseline_metrics = train_baseline_model(CombinedFeatures, '35Internal')
 
 
 
@@ -1660,17 +1676,154 @@ if __name__ == "__main__":
     # # *********************
 
 
-    folder_path = "FeatureImportance"
-    feature_df = load_feature_importance_scores(folder_path)
+    # folder_path = "FeatureImportance"
+    # feature_df = load_feature_importance_scores(folder_path)
+    #
+    # top_features_df = aggregate_and_select_features(feature_df, top_n=15)
+    #
+    # normalized_df = normalize_scores(top_features_df)
+    #
+    # desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
+    # normalized_df = normalized_df.reindex(columns=desired_order)
+    #
+    # create_heatmap(normalized_df, title="")
 
-    top_features_df = aggregate_and_select_features(feature_df, top_n=15)
 
-    normalized_df = normalize_scores(top_features_df)
 
-    desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
-    normalized_df = normalized_df.reindex(columns=desired_order)
 
-    create_heatmap(normalized_df, title="")
+
+
+
+ # ****************************
+    #  Plots
+    # # *********************
+
+
+
+
+'''
+# Set style for research paper quality plots
+plt.style.use('default')
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.size'] = 10
+plt.rcParams['axes.labelsize'] = 12
+plt.rcParams['axes.titlesize'] = 12
+
+# Data preparation
+conditions = ['35I', '35E', '45I', '45E', '55I', '55E', '35I-45E', 'All']
+
+# MAE values for each model
+mae_values = {
+    'XGBoost': [2.1425, 1.6445, 2.0298, 1.3211, 1.8687, 1.2627, 2.0615, 2.0845],
+    'SVR': [2.2370, 1.6426, 1.9950, 1.4243, 1.9270, 1.3152, 2.1051, 2.1403],
+    'RF': [2.1654, 1.8389, 2.1672, 1.4457, 1.9754, 1.3321, 2.1637, 2.1208]
+}
+
+# Set width of bars and positions of the bars
+bar_width = 0.25
+r1 = np.arange(len(conditions))
+r2 = [x + bar_width for x in r1]
+r3 = [x + bar_width for x in r2]
+
+# Create figure and axis with larger size
+plt.figure(figsize=(12, 6))
+
+# Create bars
+plt.bar(r1, mae_values['XGBoost'], width=bar_width, label='XGBoost', color='#1f77b4', alpha=0.8)
+plt.bar(r2, mae_values['SVR'], width=bar_width, label='SVR', color='#ff7f0e', alpha=0.8)
+plt.bar(r3, mae_values['RF'], width=bar_width, label='RF', color='#2ca02c', alpha=0.8)
+
+# Customize the plot
+plt.xlabel('Conditions', fontsize=15)
+plt.ylabel('Mean Absolute Error (MAE)', fontsize=15)
+plt.title('')
+plt.xticks([r + bar_width for r in range(len(conditions))], conditions, rotation=45, fontsize=15)
+plt.yticks(fontsize=15)
+
+# Add grid for better readability
+plt.grid(True, linestyle='--', alpha=0.3, axis='y')
+
+# Add legend
+plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
+
+# Adjust layout to prevent label cutoff
+plt.tight_layout()
+
+# Save the figure
+plt.savefig('grouped_bar_chart_mae.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+
+
+# Created/Modified files during execution:
+print("Created files:")
+print("grouped_bar_chart_mae.png")
+print("grouped_bar_chart_rmse.png")
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # *********************************************
+        #   Training All and Testing on Individual Conditions
+        # # *********************************************
+
+
+
+# # Read all CSV files
+# internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
+# external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
+# internal45_df = pd.read_csv('AllMovements/45InternalFeatures.csv')
+# external45_df = pd.read_csv('AllMovements/45ExternalFeatures.csv')
+# internal55_df = pd.read_csv('AllMovements/55InternalFeatures.csv')
+# external55_df = pd.read_csv('AllMovements/55ExternalFeatures.csv')
+#
+# # Add condition column to each dataframe
+# internal35_df['condition'] = '35Internal'
+# external35_df['condition'] = '35External'
+# internal45_df['condition'] = '45Internal'
+# external45_df['condition'] = '45External'
+# internal55_df['condition'] = '55Internal'
+# external55_df['condition'] = '55External'
+#
+# # Verify columns match
+# all_columns_match = (internal35_df.columns.tolist() == external35_df.columns.tolist() ==
+#                      internal45_df.columns.tolist() == external45_df.columns.tolist() ==
+#                      internal55_df.columns.tolist() == external55_df.columns.tolist()
+#                      )
+# print("All columns match:", all_columns_match)
+#
+# # Concatenate all dataframes vertically
+# combined_df = pd.concat([internal35_df, external35_df, internal45_df, external45_df, internal55_df, external55_df],
+#                         axis=0, ignore_index=True)
+#
+# # Save combined dataset
+# combined_df.to_csv('AllMovements/CombinedFeaturesWithConditionColumn.csv', index=False)
+# CombinedFeatures = "AllMovements/CombinedFeaturesWithConditionColumn.csv"
+#
+# # Print distribution of conditions
+# print("\nDistribution of conditions:")
+# print(combined_df['condition'].value_counts())
+
+
+# train_all_test_individual("AllMovements/CombinedFeaturesWithConditionColumn.csv")
+
+
+
+
+
+
 
 
 

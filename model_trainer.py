@@ -58,6 +58,9 @@ def train_and_evaluate(csv_path, movementType):
     y = df['Borg']
     X = df.drop(['Subject', 'Repetition', 'Borg'], axis=1)
     groups = df['Subject']
+    print("********")
+    print(X.shape[1])
+    print(len(X.columns))
 
     models = {
         'XGBoost Regressor': XGBRegressor(random_state=42),
@@ -466,4 +469,328 @@ def get_top_features(X, y, featureImpSavingPath, top_n):
     feature_importance_df.head(top_n).to_csv(featureImpSavingPath, index=False)
 
     return top_features
+
+
+
+
+
+def train_baseline_model(csv_path, movementType):
+    """
+    Train a baseline model that predicts the mean Borg value of the training set
+    and evaluate its performance for each condition.
+
+    Parameters:
+    - csv_path (str): Path to the feature file
+    - movementType (str): Type of movement condition being evaluated
+
+    Returns:
+    - dict: Dictionary containing the performance metrics
+    """
+    print("\n=== Training and Evaluating Baseline Model ===\n")
+
+    # Load and prepare data
+    try:
+        df = pd.read_csv(csv_path)
+        print(f"Data loaded successfully from '{csv_path}'.\n")
+    except FileNotFoundError:
+        print(f"Error: File '{csv_path}' not found.")
+        return
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return
+
+    df = df.bfill().ffill()
+    y = df['Borg']
+    groups = df['Subject']
+
+    # Create GroupKFold for cross-validation
+    group_kfold = GroupKFold(n_splits=32)
+
+    # Initialize lists to store predictions
+    y_pred_all = []
+    y_true_all = []
+
+    # Perform cross-validation
+    for train_idx, test_idx in group_kfold.split(df, y, groups):
+        # Get training and test sets
+        y_train = y.iloc[train_idx]
+        y_test = y.iloc[test_idx]
+
+        # Calculate mean of training set
+        baseline_prediction = np.mean(y_train)
+
+        # Make predictions (same value for all test samples)
+        y_pred = np.full(len(y_test), baseline_prediction)
+
+        # Store predictions and true values
+        y_pred_all.extend(y_pred)
+        y_true_all.extend(y_test)
+
+    # Convert lists to arrays
+    y_pred_all = np.array(y_pred_all)
+    y_true_all = np.array(y_true_all)
+
+    # Calculate performance metrics
+    mae = mean_absolute_error(y_true_all, y_pred_all)
+    mse = mean_squared_error(y_true_all, y_pred_all)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_true_all, y_pred_all)
+    mape = np.mean(np.abs((y_true_all - y_pred_all) / y_true_all)) * 100
+
+    # Print results
+    print("\n=== Baseline Model Performance ===")
+    print(f"MAE: {mae:.4f}")
+    print(f"MSE: {mse:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"R²: {r2:.4f}")
+    print(f"MAPE: {mape:.2f}%")
+
+    # Create and save actual vs predicted plot
+    plotsSavingPath = ''
+    if movementType == '35Internal':
+        plotsSavingPath = "35Internal/Results CSVs"
+    elif movementType == '45Internal':
+        plotsSavingPath = "45Internal/Results CSVs"
+    elif movementType == '55Internal':
+        plotsSavingPath = "55Internal/Results CSVs"
+    elif movementType == '35External':
+        plotsSavingPath = "35External/Results CSVs"
+    elif movementType == '45External':
+        plotsSavingPath = '45External/Results CSVs'
+    elif movementType == '55External':
+        plotsSavingPath = '55External/Results CSVs'
+    elif movementType == 'Internal35External35':
+        plotsSavingPath = '35Internal+35External/Results CSVs'
+    elif movementType == '35i35e45i45e':
+        plotsSavingPath = '35I+35E+45I+45E/Results CSVs'
+    elif movementType == 'Internal45External45':
+        plotsSavingPath = '45Internal+45External/Results CSVs'
+    elif movementType == 'AllMovements':
+        plotsSavingPath = 'AllMovements/Results CSVs'
+
+    save_actual_vs_predicted_plot(
+        pd.Series(y_true_all),
+        pd.Series(y_pred_all),
+        {'Baseline'},
+        plotsSavingPath
+    )
+
+    # Return metrics dictionary
+    return {
+        'MAE': mae,
+        'MSE': mse,
+        'RMSE': rmse,
+        'R2': r2,
+        'MAPE': mape
+    }
+
+
+def analyze_borg_errors(y_true, y_pred, condition_name, model_name):
+    """
+    Analyze prediction errors for each Borg scale value.
+    """
+    # Create DataFrame with actual and predicted values
+    error_df = pd.DataFrame({
+        'Actual': y_true,
+        'Predicted': y_pred,
+        'Absolute_Error': np.abs(y_true - y_pred),
+        'Percentage_Error': np.abs((y_true - y_pred) / y_true) * 100
+    })
+
+    # Group by actual Borg values and calculate statistics
+    borg_analysis = error_df.groupby('Actual').agg({
+        'Absolute_Error': ['count', 'mean', 'std', 'min', 'max'],
+        'Percentage_Error': ['mean', 'std']
+    }).round(2)
+
+    # Rename columns for clarity
+    borg_analysis.columns = ['Count', 'MAE', 'MAE_STD', 'Min_AE', 'Max_AE',
+                           'MAPE', 'MAPE_STD']
+
+    # Sort by MAE to identify problematic Borg values
+    borg_analysis_sorted = borg_analysis.sort_values('MAE', ascending=False)
+
+    # Save detailed analysis to CSV
+    output_path = f'AllMovements/Results CSVs/borg_error_analysis_{condition_name}_{model_name}.csv'
+    borg_analysis_sorted.to_csv(output_path)
+
+    # Create visualization
+    plt.figure(figsize=(12, 6))
+
+    # Plot 1: MAE by Borg Value
+    plt.subplot(1, 2, 1)
+    plt.bar(borg_analysis_sorted.index, borg_analysis_sorted['MAE'])
+    plt.title(f'MAE by Borg Value\n{condition_name} - {model_name}')
+    plt.xlabel('Actual Borg Value')
+    plt.ylabel('Mean Absolute Error')
+
+    # Plot 2: Sample Distribution
+    plt.subplot(1, 2, 2)
+    plt.bar(borg_analysis_sorted.index, borg_analysis_sorted['Count'])
+    plt.title('Sample Distribution')
+    plt.xlabel('Borg Value')
+    plt.ylabel('Number of Samples')
+
+    plt.tight_layout()
+    plt.savefig(f'AllMovements/Results CSVs/borg_error_analysis_{condition_name}_{model_name}.png')
+    plt.close()
+
+    return borg_analysis_sorted
+
+
+def train_all_test_individual(csv_path):
+    """
+    Train models on all conditions except one using top features and hyperparameter tuning,
+    then evaluate on the left-out condition across all subjects at once.
+    """
+    print("\n=== Loading Combined Data ===\n")
+    try:
+        df = pd.read_csv(csv_path)
+        print(f"Data loaded successfully from '{csv_path}'.\n")
+    except FileNotFoundError:
+        print(f"Error: File '{csv_path}' not found.")
+        return
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return
+
+    df = df.dropna(subset=['Borg'])
+    conditions = df['condition'].unique()
+
+    # Initialize models
+    models = {
+        'XGBoost Regressor': XGBRegressor(random_state=42),
+        'Support Vector Regressor': SVR(),
+        'Random Forest': RandomForestRegressor(random_state=42)
+    }
+
+    results = {}
+
+    # Leave-One-Condition-Out Cross-Validation
+    for condition in conditions:
+        print(f"\n=== Testing on Left-Out Condition: {condition} ===")
+
+        # Split data
+        train_df = df[df['condition'] != condition]
+        test_df = df[df['condition'] == condition]
+
+        # Prepare data - do this once per condition
+        y_train = train_df['Borg']
+        X_train = train_df.drop(['Subject', 'Repetition', 'Borg', 'condition'], axis=1)
+        y_test = test_df['Borg']
+        X_test = test_df.drop(['Subject', 'Repetition', 'Borg', 'condition'], axis=1)
+
+        # Feature selection - do this once per condition
+        featureImpSavingPath = f'AllMovements/Results CSVs/features_imp_{condition}.csv'
+        top_features = get_top_features(X_train, y_train, featureImpSavingPath, 100)
+        X_train = X_train[top_features]
+        X_test = X_test[top_features]
+
+        condition_results = {}
+
+        for model_name, model in models.items():
+            print(f"\n=== Processing {model_name} ===")
+
+            # Hyperparameter tuning - do this once per condition
+            print("Tuning hyperparameters...")
+            tuned_model = tune_model(
+                model_name=model_name,
+                X=X_train,
+                y=y_train,
+                groups=train_df['Subject']
+            )
+
+            # Train final model - do this once per condition
+            print("Training final model...")
+            tuned_model.fit(X_train, y_train)
+
+            # Test on all subjects at once
+            print("Testing on left-out condition...")
+            y_pred = tuned_model.predict(X_test)
+
+            # Calculate metrics
+            mae = mean_absolute_error(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            rmse = mean_squared_error(y_test, y_pred, squared=False)
+            r2 = r2_score(y_test, y_pred)
+            mape = (abs((y_test - y_pred) / y_test).mean()) * 100
+
+            condition_results[model_name] = {
+                'MAE': mae,
+                'MSE': mse,
+                'RMSE': rmse,
+                'R2': r2,
+                'MAPE': mape,
+                'predictions': y_pred,
+                'actual': y_test.values
+            }
+
+            # Perform detailed Borg error analysis
+            borg_analysis = analyze_borg_errors(y_test, y_pred, condition, model_name)
+
+            # Save results
+            print(f"\n{model_name} on {condition}:")
+            print(f"MAE: {mae:.4f}, MSE: {mse:.4f}, RMSE: {rmse:.4f}")
+            print(f"R2: {r2:.4f}, MAPE: {mape:.2f}%")
+
+            print("\nBorg-wise Error Analysis:")
+            print(borg_analysis)
+
+            # Save plot
+            plot_path = f"AllMovements/Results CSVs/{model_name}_{condition}_test.png"
+            save_actual_vs_predicted_plot(y_test.values, y_pred, {model_name}, plot_path)
+
+        results[condition] = condition_results
+
+    return results
+
+
+def tune_model(model_name, X, y, groups):
+    """Generic model tuning function"""
+    base_model = {
+        'XGBoost Regressor': XGBRegressor(random_state=42),
+        'Support Vector Regressor': SVR(),
+        'Random Forest': RandomForestRegressor(random_state=42)
+    }[model_name]
+
+    param_grid = {
+        'XGBoost Regressor': {
+            'regressor__n_estimators': [100, 200, 500],
+            'regressor__max_depth': [3, 5, 7, 9],
+            'regressor__learning_rate': [0.01, 0.05, 0.1]
+        },
+        'Support Vector Regressor': {
+            'regressor__C': [0.1, 1, 10, 50],
+            'regressor__gamma': ['scale'],
+            'regressor__kernel': ['rbf', 'poly']
+        },
+        'Random Forest': {
+            'regressor__n_estimators': [100, 200, 300],
+            'regressor__max_depth': [None, 10, 20, 30],
+            'regressor__min_samples_split': [2, 5, 10],
+            'regressor__min_samples_leaf': [1, 2, 4]
+        }
+
+    }[model_name]
+
+    pipeline = Pipeline([
+        ('variance_filter', VarianceThreshold(threshold=0.01)),
+        ('scaler', StandardScaler()),
+        ('regressor', base_model)
+    ])
+
+    random_search = RandomizedSearchCV(
+        pipeline,
+        param_distributions=param_grid,
+        n_iter=10,
+        cv=GroupKFold(n_splits=5),
+        scoring='neg_mean_squared_error',
+        random_state=42,
+        n_jobs=-1
+    )
+
+    random_search.fit(X, y, groups=groups)
+    return random_search.best_estimator_
+
+
 
