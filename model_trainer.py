@@ -64,18 +64,17 @@ def train_and_evaluate(csv_path, movementType):
 
     models = {
         'XGBoost Regressor': XGBRegressor(random_state=42),
-        'Support Vector Regressor': SVR(),
-        'Random Forest': RandomForestRegressor(random_state=42),
-        'Ridge Regression': Ridge(random_state=42),
-        'Lasso Regression': Lasso(random_state=42),
-        'Elastic Net': ElasticNet(random_state=42)
+        'Support Vector Regressor': SVR()
+        # 'Random Forest': RandomForestRegressor(random_state=42),
+        # 'Ridge Regression': Ridge(random_state=42),
+        # 'Lasso Regression': Lasso(random_state=42),
+        # 'Elastic Net': ElasticNet(random_state=42)
     }
 
     group_kfold = GroupKFold(n_splits=32)
 
     # Step 1: Train and evaluate using all features
     print("=== Training and Evaluating with All Features ===\n")
-    # all_features_metrics = train_models(models, X, y, groups, group_kfold, tune_svm=True)
 
     # Identify top 50 features using Random Forest
     print("\n=== Identifying Top 80 Features ===\n")
@@ -304,15 +303,22 @@ def train_models(models, X, y, groups, group_kfold, movementType):
 
         elif model_name == 'XGBoost Regressor':
             # Perform hyperparameter tuning for XGBoost
+            # param_grid = {
+            #     'regressor__n_estimators': [100, 200, 500],
+            #     'regressor__max_depth': [3, 5, 7, 9],
+            #     'regressor__learning_rate': [0.01, 0.05, 0.1],
+            #     'regressor__min_child_weight': [1, 3, 5],
+            #     'regressor__subsample': [0.8, 0.9, 1.0],
+            #     'regressor__colsample_bytree': [0.8, 0.9, 1.0],
+            #     'regressor__gamma': [0, 0.1, 0.2]
+            # }
+
             param_grid = {
-                'regressor__n_estimators': [100, 200, 500],
-                'regressor__max_depth': [3, 5, 7, 9],
-                'regressor__learning_rate': [0.01, 0.05, 0.1],
-                'regressor__min_child_weight': [1, 3, 5],
-                'regressor__subsample': [0.8, 0.9, 1.0],
-                'regressor__colsample_bytree': [0.8, 0.9, 1.0],
-                'regressor__gamma': [0, 0.1, 0.2]
-            }
+                'regressor__n_estimators': [100, 200],
+                'regressor__max_depth': [5, 7],
+                'regressor__learning_rate': [0.05, 0.1],
+                'regressor__min_child_weight': [5],
+                'regressor__subsample': [0.9]}
 
             pipeline = Pipeline([
                 ('variance_filter', VarianceThreshold(threshold=0.01)),
@@ -400,6 +406,12 @@ def train_models(models, X, y, groups, group_kfold, movementType):
             plotsSavingPath = '45Internal+45External/Results CSVs'
             pass
         elif movementType == 'AllMovements':
+            plotsSavingPath = 'AllMovements/Results CSVs'
+            pass
+        elif movementType == 'Internal':
+            plotsSavingPath = 'AllMovements/Results CSVs'
+            pass
+        elif movementType == 'External':
             plotsSavingPath = 'AllMovements/Results CSVs'
             pass
 
@@ -655,7 +667,8 @@ def train_all_test_individual(csv_path):
         return
 
     df = df.dropna(subset=['Borg'])
-    conditions = df['condition'].unique()
+    # conditions = df['condition'].unique()
+    conditions = ['45External']
 
     # Initialize models
     models = {
@@ -670,17 +683,18 @@ def train_all_test_individual(csv_path):
     for condition in conditions:
         print(f"\n=== Testing on Left-Out Condition: {condition} ===")
 
-        # Split data
         train_df = df[df['condition'] != condition]
         test_df = df[df['condition'] == condition]
 
-        # Prepare data - do this once per condition
+        print(f"Training set size: {len(train_df)}")
+        print(f"Test set size: {len(test_df)}")
+
+
         y_train = train_df['Borg']
         X_train = train_df.drop(['Subject', 'Repetition', 'Borg', 'condition'], axis=1)
         y_test = test_df['Borg']
         X_test = test_df.drop(['Subject', 'Repetition', 'Borg', 'condition'], axis=1)
 
-        # Feature selection - do this once per condition
         featureImpSavingPath = f'AllMovements/Results CSVs/features_imp_{condition}.csv'
         top_features = get_top_features(X_train, y_train, featureImpSavingPath, 100)
         X_train = X_train[top_features]
@@ -691,7 +705,6 @@ def train_all_test_individual(csv_path):
         for model_name, model in models.items():
             print(f"\n=== Processing {model_name} ===")
 
-            # Hyperparameter tuning - do this once per condition
             print("Tuning hyperparameters...")
             tuned_model = tune_model(
                 model_name=model_name,
@@ -700,15 +713,12 @@ def train_all_test_individual(csv_path):
                 groups=train_df['Subject']
             )
 
-            # Train final model - do this once per condition
             print("Training final model...")
             tuned_model.fit(X_train, y_train)
 
-            # Test on all subjects at once
             print("Testing on left-out condition...")
             y_pred = tuned_model.predict(X_test)
 
-            # Calculate metrics
             mae = mean_absolute_error(y_test, y_pred)
             mse = mean_squared_error(y_test, y_pred)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
@@ -726,17 +736,15 @@ def train_all_test_individual(csv_path):
             }
 
             # Perform detailed Borg error analysis
-            borg_analysis = analyze_borg_errors(y_test, y_pred, condition, model_name)
+            # borg_analysis = analyze_borg_errors(y_test, y_pred, condition, model_name)
 
-            # Save results
             print(f"\n{model_name} on {condition}:")
             print(f"MAE: {mae:.4f}, MSE: {mse:.4f}, RMSE: {rmse:.4f}")
             print(f"R2: {r2:.4f}, MAPE: {mape:.2f}%")
 
-            print("\nBorg-wise Error Analysis:")
-            print(borg_analysis)
+            # print("\nBorg-wise Error Analysis:")
+            # print(borg_analysis)
 
-            # Save plot
             plot_path = f"AllMovements/Results CSVs/{model_name}_{condition}_test.png"
             save_actual_vs_predicted_plot(y_test.values, y_pred, {model_name}, plot_path)
 
@@ -794,3 +802,142 @@ def tune_model(model_name, X, y, groups):
 
 
 
+def prepare_and_train_models(file_path, top_n=100):  # Added top_n parameter
+    # Read the combined dataset
+    print("Reading dataset...")
+    df = pd.read_csv(file_path)
+    print(f"Dataset shape: {df.shape}")
+
+    # Create dictionaries for models with simplified parameters
+    models = {
+        'XGBoost Regressor': XGBRegressor(
+            n_estimators=100,
+            learning_rate=0.1,
+            max_depth=5,
+            random_state=42
+        ),
+        'Random Forest': RandomForestRegressor(
+            n_estimators=100,
+            max_depth=10,
+            random_state=42
+        ),
+        'SVR': SVR(kernel='rbf', C=1.0)
+        # 'Ridge': Ridge(alpha=1.0),
+        # 'Lasso': Lasso(alpha=1.0),
+        # 'Elastic Net': ElasticNet(alpha=1.0, l1_ratio=0.5)
+    }
+
+    # Define number of splits for GroupKFold
+    n_splits = 5
+    group_kfold = GroupKFold(n_splits=n_splits)
+
+    # Separate internal and external rotations
+    internal_conditions = ['35Internal', '45Internal', '55Internal']
+    external_conditions = ['35External', '45External', '55External']
+
+    # Train for Internal Rotations
+    print("\n=== Training Models for Internal Rotations ===")
+    internal_df = df[df['condition'].isin(internal_conditions)].copy()
+    print(f"Internal rotations shape: {internal_df.shape}")
+
+    # Clean the data
+    internal_df = internal_df.dropna(subset=['Borg'])
+    print(f"Internal rotations shape after cleaning: {internal_df.shape}")
+
+    # Prepare features and target for internal rotations
+    feature_cols = [col for col in internal_df.columns if col not in ['condition', 'Borg', 'Subject', 'Repetition']]
+    X_internal = internal_df[feature_cols]
+    y_internal = internal_df['Borg']
+    groups_internal = internal_df['Subject']
+
+    # Get top features for internal rotations
+    print("\nSelecting top features for internal rotations...")
+    internal_top_features = get_top_features(
+        X_internal,
+        y_internal,
+        'AllMovements/Results CSVs/internal_top_features.csv',
+        top_n
+    )
+
+    # Use only top features for training
+    X_internal = X_internal[internal_top_features]
+
+    # Print data information
+    print(f"\nFeatures shape after selection: {X_internal.shape}")
+    print(f"Target shape: {y_internal.shape}")
+    print(f"Number of unique groups: {len(groups_internal.unique())}")
+
+    # Basic data validation after cleaning
+    print("\nData validation after cleaning:")
+    print(f"X contains inf: {np.any(np.isinf(X_internal))}")
+    print(f"X contains nan: {np.any(np.isnan(X_internal))}")
+    print(f"y contains inf: {np.any(np.isinf(y_internal))}")
+    print(f"y contains nan: {np.any(np.isnan(y_internal))}")
+
+    # Train models for internal rotations
+    try:
+        internal_metrics = train_models(
+            models=models,
+            X=X_internal,
+            y=y_internal,
+            groups=groups_internal,
+            group_kfold=group_kfold,
+            movementType='Internal'
+        )
+    except Exception as e:
+        print(f"Error in internal rotations training: {str(e)}")
+        internal_metrics = None
+
+    # Train for External Rotations
+    print("\n=== Training Models for External Rotations ===")
+    external_df = df[df['condition'].isin(external_conditions)].copy()
+
+    # Clean external data
+    external_df = external_df.dropna(subset=['Borg'])
+    print(f"External rotations shape after cleaning: {external_df.shape}")
+
+    # Prepare features and target for external rotations
+    X_external = external_df[feature_cols]
+    y_external = external_df['Borg']
+    groups_external = external_df['Subject']
+
+    # Get top features for external rotations
+    print("\nSelecting top features for external rotations...")
+    external_top_features = get_top_features(
+        X_external,
+        y_external,
+        'AllMovements/Results CSVs/external_top_features.csv',
+        top_n
+    )
+
+    # Use only top features for training
+    X_external = X_external[external_top_features]
+
+    # Train models for external rotations
+    try:
+        external_metrics = train_models(
+            models=models,
+            X=X_external,
+            y=y_external,
+            groups=groups_external,
+            group_kfold=group_kfold,
+            movementType='External'
+        )
+    except Exception as e:
+        print(f"Error in external rotations training: {str(e)}")
+        external_metrics = None
+
+    # Save results if available
+    if internal_metrics:
+        results_internal = pd.DataFrame(internal_metrics).T
+        results_internal.to_csv('AllMovements/Results CSVs/internal_rotation_results.csv')
+        print("\nInternal Rotations Results:")
+        print(results_internal)
+
+    if external_metrics:
+        results_external = pd.DataFrame(external_metrics).T
+        results_external.to_csv('AllMovements/Results CSVs/external_rotation_results.csv')
+        print("\nExternal Rotations Results:")
+        print(results_external)
+
+    return internal_metrics, external_metrics

@@ -16,7 +16,7 @@ from Features.jerk_features import extract_all_jerk_features, print_missing_valu
 from Features.movement_frequency_features import extract_all_movement_frequency_features
 from Features.mpsd_features import extract_all_mpsd_features
 from Features.rt_variability_feature_extraction import extract_all_rt_variability_features
-from model_trainer import train_and_evaluate, train_baseline_model, train_all_test_individual
+from model_trainer import train_and_evaluate, train_baseline_model, train_all_test_individual, prepare_and_train_models
 from FeatureImportance.featureImpVisualisation import load_feature_importance_scores, normalize_scores, aggregate_and_select_features, create_heatmap
 from Features.gyr_3axis_feature_extraction import extract_all_gyr_3axis_features
 from Features.zero_crossing_feature_extraction import extract_all_emg_zc_features
@@ -336,6 +336,8 @@ if __name__ == "__main__":
     print_missing_values("35Internal/Features/Extracted/allmerged_features.csv")
     '''
 
+
+
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
@@ -355,7 +357,7 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='35i')
 
     # Adding BORG values to Features file
     features_file = "35Internal/Features/Extracted/allmerged_features.csv"
@@ -371,14 +373,13 @@ if __name__ == "__main__":
     # -----------------------
 
     # Internal35_merged_features_file = "35Internal/Features/Extracted/allmerged_features_with_borg.csv"
-
-    # Regression Models
-    # train_and_evaluate(Internal35_merged_features_file, '35Internal/Results CSVs/all_features_results.csv', '35Internal/Results CSVs/features_imp.csv')
+    #
+    #
+    # # Regression Models
+    # train_and_evaluate(Internal35_merged_features_file, '35Internal')
 
     # Classification Models
     # train_and_evaluate_classification_models(merged_features_file, 'Results CSVs/all_features_results.csv', 'Results CSVs/features_imp.csv')
-
-
 
 
 
@@ -565,6 +566,7 @@ if __name__ == "__main__":
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
+
     '''
     segmented_folder_path = "45Internal/processed_data_45_i/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "45Internal/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
@@ -580,7 +582,8 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='45i')
 
     # Adding BORG values to Features file
     features_file = "45Internal/Features/Extracted/allmerged_features.csv"
@@ -594,12 +597,9 @@ if __name__ == "__main__":
     # -----------------------
 
     # Internal45_merged_features_file = "45Internal/Features/Extracted/allmerged_features_with_borg.csv"
-    #
+    # #
     # # Regression Models
     # train_and_evaluate(Internal45_merged_features_file, '45Internal')
-
-
-
 
 
 
@@ -817,12 +817,13 @@ if __name__ == "__main__":
     merge_features(feature_files, "55Internal/Features/Extracted/allmerged_features.csv")
 
     print_missing_values("55Internal/Features/Extracted/allmerged_features.csv")
-
+    '''
 
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
 
+    '''
     segmented_folder_path = "55Internal/processed_data_55_i/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "55Internal/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
 
@@ -837,7 +838,7 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='55i')
 
     # Adding BORG values to Features file
     features_file = "55Internal/Features/Extracted/allmerged_features.csv"
@@ -1047,13 +1048,14 @@ if __name__ == "__main__":
     merge_features(feature_files, "35External/Features/Extracted/allmerged_features.csv")
 
     print_missing_values("35External/Features/Extracted/allmerged_features.csv")
-    
+    '''
 
 
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
-    
+
+    '''
     segmented_folder_path = "35External/processed_data_35_e/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "35External/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
 
@@ -1068,25 +1070,25 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='35e')
 
     # Adding BORG values to Features file
     features_file = "35External/Features/Extracted/allmerged_features.csv"
     repetition_file = "35External/Repitition Times/repetition_times_with_borg.csv"
     output_file = "35External/Features/Extracted/allmerged_features_with_borg.csv"
     add_borg_to_features(features_file, repetition_file, output_file)
-    
+    '''
 
     # -----------------------
     # 7. Training Regression Models
     # -----------------------
 
 
-    External35_merged_features_file = "35External/Features/Extracted/allmerged_features_with_borg.csv"
+    # External35_merged_features_file = "35External/Features/Extracted/allmerged_features_with_borg.csv"
+    #
+    # # Regression Models
+    # train_and_evaluate(External35_merged_features_file, '35External')
 
-    # Regression Models
-    train_and_evaluate(External35_merged_features_file, '35External')
-    '''
 
 
 
@@ -1270,11 +1272,13 @@ if __name__ == "__main__":
     merge_features(feature_files, "45External/Features/Extracted/allmerged_features.csv")
 
     print_missing_values("45External/Features/Extracted/allmerged_features.csv")
+    '''
 
     # --------------------------------------------
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
 
+    '''
     segmented_folder_path = "45External/processed_data_45_e/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "45External/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
 
@@ -1289,7 +1293,7 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='45e')
 
     # Adding BORG values to Features file
     features_file = "45External/Features/Extracted/allmerged_features.csv"
@@ -1491,7 +1495,7 @@ if __name__ == "__main__":
     merge_features(feature_files, "55External/Features/Extracted/allmerged_features.csv")
 
     print_missing_values("55External/Features/Extracted/allmerged_features.csv")
-
+    '''
 
 
 
@@ -1499,6 +1503,7 @@ if __name__ == "__main__":
     # 6. Adding BORG Column to Merged Features File
     # --------------------------------------------
 
+    '''
     segmented_folder_path = "55External/processed_data_55_e/Upperarm/acc"  # Path to the folder containing all subject files
     timestamps_output_csv = "55External/OutputCSVFiles/repetition_times_all_subjects.csv"  # Path to save the output CSV
 
@@ -1513,7 +1518,7 @@ if __name__ == "__main__":
     # Mid point time based
     # map_borg_to_repetitions(repetition_file, borg_file, output_file)
 
-    interpolate_borg_values(repetition_file, borg_file, output_file)
+    interpolate_borg_values(repetition_file, borg_file, output_file, target_task='55e')
 
     # Adding BORG values to Features file
     features_file = "55External/Features/Extracted/allmerged_features.csv"
@@ -1546,13 +1551,13 @@ if __name__ == "__main__":
     #    35 Internal + 35 External
     # # ****************************
 
-    # Read both CSV files
+    # # Read both CSV files
     # internal_df = pd.read_csv('35Internal+35External/35InternalFeatures.csv')
     # external_df = pd.read_csv('35Internal+35External/35ExternalFeatures.csv')
     #
     # combined_df = pd.concat([internal_df, external_df], axis=0, ignore_index=True)
     # combined_df.to_csv('35Internal+35External/35Combined_Internal_External_Features.csv', index=False)
-
+    #
     # Internal35External35_merged_features_file = "35Internal+35External/35Combined_Internal_External_Features.csv"
     # train_and_evaluate(Internal35External35_merged_features_file, 'Internal35External35')
 
@@ -1624,31 +1629,32 @@ if __name__ == "__main__":
     #   All Movements
     # # ****************************
 
+    '''
     # Read all CSV files
-    # internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
-    # external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
-    #
-    # internal45_df = pd.read_csv('AllMovements/45InternalFeatures.csv')
-    # external45_df = pd.read_csv('AllMovements/45ExternalFeatures.csv')
-    #
-    # internal55_df = pd.read_csv('AllMovements/55InternalFeatures.csv')
-    # external55_df = pd.read_csv('AllMovements/55ExternalFeatures.csv')
-    #
-    # all_columns_match = (internal35_df.columns.tolist() == external35_df.columns.tolist() ==
-    #                      internal45_df.columns.tolist() == external45_df.columns.tolist() ==
-    #                      internal55_df.columns.tolist() == external55_df.columns.tolist()
-    #                      )
-    # print("All columns match:", all_columns_match)
-    #
-    # # Concatenate all dataframes vertically
-    # combined_df = pd.concat([internal35_df, external35_df, internal45_df, external45_df, internal55_df, external55_df],
-    #                         axis=0, ignore_index=True)
-    #
-    #
-    # combined_df.to_csv('AllMovements/CombinedFeatures.csv', index=False)
-    # CombinedFeatures = "AllMovements/CombinedFeatures.csv"
-    # train_and_evaluate(CombinedFeatures, 'AllMovements')
+    internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
+    external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
 
+    internal45_df = pd.read_csv('AllMovements/45InternalFeatures.csv')
+    external45_df = pd.read_csv('AllMovements/45ExternalFeatures.csv')
+
+    internal55_df = pd.read_csv('AllMovements/55InternalFeatures.csv')
+    external55_df = pd.read_csv('AllMovements/55ExternalFeatures.csv')
+
+    all_columns_match = (internal35_df.columns.tolist() == external35_df.columns.tolist() ==
+                         internal45_df.columns.tolist() == external45_df.columns.tolist() ==
+                         internal55_df.columns.tolist() == external55_df.columns.tolist()
+                         )
+    print("All columns match:", all_columns_match)
+
+    # Concatenate all dataframes vertically
+    combined_df = pd.concat([internal35_df, external35_df, internal45_df, external45_df, internal55_df, external55_df],
+                            axis=0, ignore_index=True)
+
+
+    combined_df.to_csv('AllMovements/CombinedFeatures.csv', index=False)
+    CombinedFeatures = "AllMovements/CombinedFeatures.csv"
+    train_and_evaluate(CombinedFeatures, 'AllMovements')
+    '''
 
 
 
@@ -1676,17 +1682,17 @@ if __name__ == "__main__":
     # # *********************
 
 
-    # folder_path = "FeatureImportance"
-    # feature_df = load_feature_importance_scores(folder_path)
-    #
-    # top_features_df = aggregate_and_select_features(feature_df, top_n=15)
-    #
-    # normalized_df = normalize_scores(top_features_df)
-    #
-    # desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
-    # normalized_df = normalized_df.reindex(columns=desired_order)
-    #
-    # create_heatmap(normalized_df, title="")
+    folder_path = "FeatureImportance"
+    feature_df = load_feature_importance_scores(folder_path)
+
+    top_features_df = aggregate_and_select_features(feature_df, top_n=15)
+
+    normalized_df = normalize_scores(top_features_df)
+
+    desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
+    normalized_df = normalized_df.reindex(columns=desired_order)
+
+    create_heatmap(normalized_df, title="")
 
 
 
@@ -1696,7 +1702,7 @@ if __name__ == "__main__":
 
  # ****************************
     #  Plots
-    # # *********************
+ # *********************
 
 
 
@@ -1776,12 +1782,12 @@ print("grouped_bar_chart_rmse.png")
 
 
         # *********************************************
-        #   Training All and Testing on Individual Conditions
+        #   Leave One Condition Out
         # # *********************************************
 
 
 
-# # Read all CSV files
+# Read all CSV files
 # internal35_df = pd.read_csv('AllMovements/35InternalFeatures.csv')
 # external35_df = pd.read_csv('AllMovements/35ExternalFeatures.csv')
 # internal45_df = pd.read_csv('AllMovements/45InternalFeatures.csv')
@@ -1824,6 +1830,20 @@ print("grouped_bar_chart_rmse.png")
 
 
 
+
+
+
+
+
+
+# *********************************************
+#   Seperate Internal and External
+# # *********************************************
+
+
+
+# file_path = 'AllMovements/CombinedFeaturesWithConditionColumn.csv'
+# internal_metrics, external_metrics = prepare_and_train_models(file_path)
 
 
 

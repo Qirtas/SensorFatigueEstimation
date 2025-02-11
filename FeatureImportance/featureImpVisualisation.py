@@ -56,7 +56,7 @@ def create_heatmap(
             fmt=".2f",
             linewidths=0.5,
             # cbar_kws={'label': 'Normalized Importance'},
-            annot_kws={"fontsize": 12}
+            annot_kws={"fontsize": 14}
         )
 
         for condition, top_features in top_features_per_condition.items():
@@ -77,9 +77,9 @@ def create_heatmap(
                 ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor='red', lw=2))
 
 
-        ax.set_ylabel("", fontsize=14)
-        ax.set_xticklabels(ax.get_xticklabels(), fontsize=13, rotation=45, ha='right')
-        ax.set_yticklabels(ax.get_yticklabels(), fontsize=13)
+        ax.set_ylabel("", fontsize=15)
+        ax.set_xticklabels(ax.get_xticklabels(), fontsize=14, rotation=45, ha='right')
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=14)
 
         plt.tight_layout()
         plt.savefig(filepath, dpi=300, bbox_inches='tight')

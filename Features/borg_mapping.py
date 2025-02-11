@@ -67,30 +67,127 @@ def compute_repetition_times_for_all_subjects(folder_path, sampling_rate=100, st
 
 
 # Using Interpolation Approach
-def interpolate_borg_values(repetition_file, borg_file, output_file):
+# def interpolate_borg_values(repetition_file, borg_file, output_file):
+#     """
+#     Map Borg scale values to repetitions using linear interpolation.
+#
+#     Parameters:
+#     ----------
+#     repetition_file : str
+#         Path to the CSV file containing repetition times with columns:
+#         'Subject', 'Repetition', 'Start Time', 'End Time', 'Midpoint'
+#     borg_file : str
+#         Path to the CSV file containing Borg ratings with time intervals
+#     output_file : str
+#         Path to save the output CSV with interpolated Borg values.
+#
+#     Returns:
+#     -------
+#     None
+#     """
+#     repetition_data = pd.read_csv(repetition_file)
+#     borg_data = pd.read_csv(borg_file)
+#
+#     borg_long = pd.melt(
+#         borg_data,
+#         id_vars=['subject', 'task_order', 'before_task'],
+#         value_vars=[col for col in borg_data.columns if 'sec' in col],
+#         var_name='time_point',
+#         value_name='Borg'
+#     )
+#
+#     # Convert time points to seconds
+#     borg_long['time_seconds'] = borg_long['time_point'].str.extract('(\d+)').astype(float)
+#
+#     # Sort by subject and time
+#     borg_long = borg_long.sort_values(['subject', 'time_seconds'])
+#
+#     # Process each subject separately
+#     all_interpolated_data = []
+#
+#     for subject in repetition_data['Subject'].unique():
+#         # Get repetition data for this subject
+#         subject_repetitions = repetition_data[repetition_data['Subject'] == subject].copy()
+#
+#         # Get Borg data for this subject
+#         subject_borg = borg_long[borg_long['subject'] == f'subject_{subject}']
+#
+#         if len(subject_borg) > 0:  # Check if we have Borg data for this subject
+#             # Interpolate Borg values for this subject's repetitions
+#             subject_repetitions['Borg'] = np.interp(
+#                 subject_repetitions['Midpoint'],
+#                 subject_borg['time_seconds'],
+#                 subject_borg['Borg'],
+#                 left=subject_borg['Borg'].iloc[0],  # Use first Borg value for times before first measurement
+#                 right=subject_borg['Borg'].iloc[-1]  # Use last Borg value for times after last measurement
+#             )
+#
+#             # Exclude repetitions beyond the final Borg recording time + 10 seconds
+#             max_borg_time = subject_borg['time_seconds'].max()
+#             subject_repetitions = subject_repetitions[
+#                 subject_repetitions['Midpoint'] <= max_borg_time + 10
+#             ]
+#
+#             all_interpolated_data.append(subject_repetitions)
+#
+#     # Combine all subjects' data
+#     if all_interpolated_data:
+#         final_data = pd.concat(all_interpolated_data, ignore_index=True)
+#
+#         # Save the output
+#         final_data.to_csv(output_file, index=False)
+#         print(f"Interpolated Borg values saved to {output_file}.")
+#     else:
+#         print("No data to save. Please check if the subject IDs match between the files.")
+
+
+
+
+# Excluding excessive final borg records
+def interpolate_borg_values(repetition_file, borg_file, output_file, target_task):
     """
-    Map Borg scale values to repetitions using linear interpolation.
+    Map Borg scale values to repetitions using linear interpolation for a specific task.
 
     Parameters:
     ----------
     repetition_file : str
-        Path to the CSV file containing repetition times with columns:
-        'Subject', 'Repetition', 'Start Time', 'End Time', 'Midpoint'
+        Path to the CSV file containing repetition times
     borg_file : str
-        Path to the CSV file containing Borg ratings with time intervals
+        Path to the CSV file containing Borg ratings
     output_file : str
-        Path to save the output CSV with interpolated Borg values.
-
-    Returns:
-    -------
-    None
+        Path to save the output CSV
+    target_task : str
+        Target task to process (e.g., '35i' for 35° Internal rotation)
     """
-    # Load repetition times and Borg data
+    # Load data
     repetition_data = pd.read_csv(repetition_file)
     borg_data = pd.read_csv(borg_file)
 
-    # Convert Borg data from wide to long format
-    # Assuming your Borg data is in the format you showed earlier
+    # Forward-fill the subject column to propagate subject IDs to all rows
+    borg_data['subject'] = borg_data['subject'].ffill()
+
+    # Create task pattern mapping
+    task_pattern_map = {
+        '35i': 'task1_35i',
+        '45i': 'task2_45i',
+        '55i': 'task3_55i',
+        '35e': 'task4_35e',
+        '45e': 'task5_45e',
+        '55e': 'task6_55e'
+    }
+
+    task_pattern = task_pattern_map.get(target_task)
+    if not task_pattern:
+        raise ValueError(f"Invalid target_task: {target_task}")
+
+    # Filter Borg data for the target task
+    borg_data = borg_data[borg_data['task_order'] == task_pattern].copy()
+
+    print(f"\nAfter filtering for {task_pattern}:")
+    print("1. Number of rows:", len(borg_data))
+    print("2. Unique subjects:", borg_data['subject'].unique().tolist())
+
+    # Convert to long format
     borg_long = pd.melt(
         borg_data,
         id_vars=['subject', 'task_order', 'before_task'],
@@ -99,8 +196,9 @@ def interpolate_borg_values(repetition_file, borg_file, output_file):
         value_name='Borg'
     )
 
-    # Convert time points to seconds
+    # Convert time points to seconds and drop NaN Borg values
     borg_long['time_seconds'] = borg_long['time_point'].str.extract('(\d+)').astype(float)
+    borg_long = borg_long.dropna(subset=['Borg'])
 
     # Sort by subject and time
     borg_long = borg_long.sort_values(['subject', 'time_seconds'])
@@ -112,34 +210,58 @@ def interpolate_borg_values(repetition_file, borg_file, output_file):
         # Get repetition data for this subject
         subject_repetitions = repetition_data[repetition_data['Subject'] == subject].copy()
 
-        # Get Borg data for this subject
+        # Get Borg data for this subject and specific task
         subject_borg = borg_long[borg_long['subject'] == f'subject_{subject}']
 
-        if len(subject_borg) > 0:  # Check if we have Borg data for this subject
-            # Interpolate Borg values for this subject's repetitions
+        if len(subject_borg) > 0:
+            print(f"Processing subject {subject} - Found {len(subject_borg)} Borg records")
+
+            # Verify time alignment
+            max_borg_time = subject_borg['time_seconds'].max()
+            min_borg_time = subject_borg['time_seconds'].min()
+            print(f"  Borg time range: {min_borg_time}-{max_borg_time} seconds")
+            print(f"  Repetition time range: {subject_repetitions['Midpoint'].min()}-{subject_repetitions['Midpoint'].max()} seconds")
+
+            # Interpolate Borg values
             subject_repetitions['Borg'] = np.interp(
                 subject_repetitions['Midpoint'],
                 subject_borg['time_seconds'],
                 subject_borg['Borg'],
-                left=subject_borg['Borg'].iloc[0],  # Use first Borg value for times before first measurement
-                right=subject_borg['Borg'].iloc[-1]  # Use last Borg value for times after last measurement
+                left=subject_borg['Borg'].iloc[0],
+                right=subject_borg['Borg'].iloc[-1]
             )
 
             # Exclude repetitions beyond the final Borg recording time + 10 seconds
-            max_borg_time = subject_borg['time_seconds'].max()
             subject_repetitions = subject_repetitions[
                 subject_repetitions['Midpoint'] <= max_borg_time + 10
             ]
 
+            # Handle Borg=19 plateau
+            borg_19_times = subject_borg[subject_borg['Borg'] == 19]['time_seconds']
+            if not borg_19_times.empty:
+                borg_19_start_time = borg_19_times.min()
+                subject_repetitions = subject_repetitions[
+                    subject_repetitions['Midpoint'] <= borg_19_start_time + 10
+                ]
+
             all_interpolated_data.append(subject_repetitions)
+        else:
+            print(f"Warning: No Borg data found for subject {subject} and task {task_pattern}")
 
     # Combine all subjects' data
     if all_interpolated_data:
         final_data = pd.concat(all_interpolated_data, ignore_index=True)
 
+        # Add summary statistics
+        print("\nSummary Statistics:")
+        print(f"Total subjects processed: {len(all_interpolated_data)}")
+        print(f"Total repetitions: {len(final_data)}")
+        print("\nBorg value distribution:")
+        print(final_data['Borg'].describe())
+
         # Save the output
         final_data.to_csv(output_file, index=False)
-        print(f"Interpolated Borg values saved to {output_file}.")
+        print(f"\nInterpolated Borg values saved to {output_file}.")
     else:
         print("No data to save. Please check if the subject IDs match between the files.")
 
