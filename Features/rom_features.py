@@ -73,8 +73,7 @@ def compute_additional_features_for_repetition(
     # ----------------------------------------------------
 
     # A) Peak Angular Velocity (largest absolute velocity or just largest value?)
-    #    Typically, "peak" can mean max of arr if positive, or we can use absolute.
-    #    We'll assume raw max() for now.
+
 
     peak_val = np.max(arr)
     feats[f"Peak_AngVel_{prefix}_{body_part}"] = peak_val
@@ -85,16 +84,12 @@ def compute_additional_features_for_repetition(
     feats[f"TimeToPeak_AngVel_{prefix}_{body_part}"] = time_to_peak
 
     # C) Cumulative Angular Displacement = ∫ angular velocity dt
-    #    Decide if we integrate the raw velocities or absolute velocities.
-    #    Typically, "displacement" is the integral of velocity (which can go positive/negative).
-    #    For total rotation distance, you might integrate absolute velocity.
-    #    We'll do net displacement here, but feel free to change to abs.
+
 
     cumulative_disp = np.sum(arr) * dt
     feats[f"CumulativeDisplacement_{prefix}_{body_part}"] = cumulative_disp
 
     # D) Angular Velocity Range (RoM) = max(arr) - min(arr)
-    #    We already may have computed a simple range, but restate for clarity.
     angvel_range = np.max(arr) - np.min(arr)
     feats[f"AngVelRange_{prefix}_{body_part}"] = angvel_range
 
@@ -129,9 +124,7 @@ def compute_additional_features_for_repetition(
     # 2) Frequency Domain Features
     # ----------------------------------------------------
 
-    # We'll do a Welch PSD to find total energy & dominant freq
-    # (You could also do rfft, but Welch is often more robust for noisy signals.)
-    # PSD_Energy: integrate PSD across frequencies
+
     total_energy = np.sum(psd_full)
     feats[f"PSD_Energy_{prefix}_{body_part}"] = total_energy
 
@@ -144,9 +137,7 @@ def compute_additional_features_for_repetition(
     # 3) Angle-Related Features (integrating velocity -> angle)
     # ----------------------------------------------------
 
-    # We'll do a simple cumulative sum to get angle(t):
-    # angle(t_i) = angle(t_0) + ∑ ( velocity[k] * dt ), k=0..i
-    # Assume initial angle = 0.
+
     angle_arr = np.cumsum(arr) * dt
     max_angle = np.max(angle_arr)
     min_angle = np.min(angle_arr)
@@ -163,28 +154,8 @@ def compute_additional_features_for_repetition(
     return feats
 
 def compute_rom_features_for_repetition(data, body_part="Shoulder", sampling_rate=100):
-    """
-    Compute Range of Motion (RoM) features, including:
-    1) Statistical features (mean, median, min, max, range, std, var, skew, kurtosis)
-    2) Temporal features: slope of angular velocity, peak frequency (FFT), zero-crossings,
-       duration of 'extreme' velocities.
 
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        DataFrame with columns ['X', 'Y', 'Z'], all belonging to a single repetition.
-    body_part : str
-        Name of the body part (e.g. 'Shoulder') to embed in the feature names.
-    sampling_rate : int
-        Gyroscope sampling frequency (e.g., 100 Hz).
 
-    Returns
-    -------
-    feature_dict : dict
-        Dictionary of computed statistical and temporal features for each axis (X, Y, Z)
-        and the magnitude. Keys include the body_part for clarity, e.g.,
-        "ROM_X_mean_Shoulder", "ROM_X_peak_freq_Shoulder", "ROM_mag_zero_crossings_Shoulder", etc.
-    """
     gx = data['X'].to_numpy()
     gy = data['Y'].to_numpy()
     gz = data['Z'].to_numpy()
@@ -223,7 +194,6 @@ def compute_rom_features_for_repetition(data, body_part="Shoulder", sampling_rat
 
     # 2. Temporal Features
     # A) Rate of Change (Slope of angular velocity)
-    #    We'll do a simple linear fit of velocity vs. time: slope = d(velocity)/d(t).
     def compute_slope(arr, prefix):
         # Time array based on sampling rate
         t = np.arange(len(arr)) / sampling_rate

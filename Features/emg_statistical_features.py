@@ -26,17 +26,9 @@ def compute_mean_power(signal):
 
 
 def compute_snr(signal):
-    """
-    A simple approach to SNR might be:
-      SNR = 10 * log10( SignalPower / NoisePower )
-    If you have a baseline noise estimate, use that. Otherwise, we do a naive approach:
-    - We can treat the min or quiet portion of the signal as 'noise' or
-    - Assume noise is std around the zero baseline.
-    For demonstration, let's do a naive ratio:
-    """
-    # A naive noise measure could be the RMS of the portion considered "noise".
-    # Here we just define noise as the standard deviation near zero.
-    # (You might have more sophisticated methods to isolate noise.)
+
+
+
     signal_power = np.mean(signal ** 2)
     # approximate noise
     noise = np.std(signal - np.mean(signal))  # simplistic
@@ -46,12 +38,8 @@ def compute_snr(signal):
 
 
 def compute_mean_frequency(signal, fs=1000):
-    """
-    Mean Frequency requires an FFT approach or power spectral density (PSD) calculation.
-    We'll do a simple discrete Fourier transform and compute:
-      mean_frequency = ( sum(f_i * P_i) / sum(P_i) ),
-    where P_i is the power at frequency bin f_i.
-    """
+
+
     n = len(signal)
     if n < 2:
         return np.nan
@@ -70,14 +58,9 @@ def compute_mean_frequency(signal, fs=1000):
 
 
 def compute_fractal_dimension(signal):
-    """
-    Placeholder for fractal dimension. Many methods exist (e.g., Higuchi, Katz).
-    We'll do a simplistic approach (e.g., Petrosian's fractal dimension).
-    """
+
 
     # Petrosian’s fractal dimension (rough example)
-    # Reference: Petrosian, 1995.
-    # This is a rough approximation; for real usage, you might implement a more sophisticated algorithm.
     diff = np.diff(signal)
     N_delta = np.sum(diff[1:] * diff[:-1] < 0)
     n = len(signal)
@@ -85,21 +68,14 @@ def compute_fractal_dimension(signal):
 
 
 def compute_zero_crossings(signal):
-    """
-    Zero Crossings: number of times the signal crosses zero.
-    """
+
     signs = np.sign(signal)
     zc = np.sum(np.diff(signs) != 0)
     return zc
 
 
 def find_onset_time(signal, fs=1000, threshold=0.01):
-    """
-    Onset Detection (simple approach):
-      - Once the absolute signal exceeds a certain threshold, we define onset.
-      - Return time in seconds from start to crossing.
-    This threshold is arbitrary; you can define a fraction of peak or an RMS-based threshold.
-    """
+    
     abs_signal = np.abs(signal)
     idx = np.where(abs_signal > threshold)[0]
     if len(idx) == 0:
@@ -150,9 +126,7 @@ def compute_emg_statistical_features(
     median_val = np.median(x)
     feats[f"{muscle_name}_Median"] = median_val
 
-    # Mode (approx): for a continuous signal, "mode" can be tricky.
-    # One approach: bin the data and pick the bin with highest count.
-    # We'll do a rough approach with a fixed number of bins.
+
     hist, bin_edges = np.histogram(x, bins=50)
     mode_bin = np.argmax(hist)
     mode_est = 0.5 * (bin_edges[mode_bin] + bin_edges[mode_bin + 1])
@@ -174,7 +148,6 @@ def compute_emg_statistical_features(
     feats[f"{muscle_name}_IQR"] = iqr_val
 
     # 3) Shape: Skewness, Kurtosis
-    # We can use scipy.stats skew, kurtosis
     sk_val = skew(x, bias=False) if N > 1 else 0.0
     kt_val = kurtosis(x, bias=False) if N > 1 else 0.0
     feats[f"{muscle_name}_Skewness"] = sk_val
@@ -230,7 +203,6 @@ def compute_emg_statistical_features(
 
     # 8) Signal Complexity
     # Entropy (Shannon)
-    # We can do a histogram-based approach
     hist_counts, bin_edges = np.histogram(x, bins=50, density=True)
     hist_counts = hist_counts + 1e-12  # avoid zero
     ent_val = entropy(hist_counts, base=2)  # Shannon entropy in bits

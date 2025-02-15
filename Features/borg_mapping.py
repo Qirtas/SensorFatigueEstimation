@@ -14,9 +14,6 @@ def compute_repetition_times_for_all_subjects(folder_path, sampling_rate=100, st
         Path to the folder containing segmented IMU CSV files for all subjects.
     sampling_rate : int
         Sampling frequency in Hz. Default is 100 Hz.
-    start_offset : float
-        Offset for the start time in seconds (e.g., 8 seconds excluded). Default is 8.0 seconds.
-
     Returns:
     -------
     all_repetition_times : pd.DataFrame

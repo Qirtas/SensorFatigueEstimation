@@ -8,41 +8,18 @@ from scipy.stats import skew, kurtosis
 
 
 def compute_jerk_features_for_repetition(acc_data, dt, body_part):
-    """
-    Compute jerk features (X, Y, Z, magnitude) for a single repetition
-    and embed the body_part in each feature name.
 
-    Parameters
-    ----------
-    acc_data : pandas.DataFrame
-        A DataFrame containing columns [X, Y, Z] for the repetition.
-    dt : float
-        Sampling interval (1 / sampling_rate).
-    body_part : str
-        Name of the body part (e.g., 'Shoulder') to embed in feature columns.
-
-    Returns
-    -------
-    feature_dict : dict
-        Dictionary of computed features (mean, median, max, min, skew, kurtosis, etc.)
-        for X, Y, Z, and magnitude of jerk, with body_part appended to column names.
-        Example keys: "jerkX_mean_Shoulder", "jerkMag_kurtosis_Shoulder", etc.
-    """
-    # Convert to numpy arrays
     ax = acc_data['X'].to_numpy()
     ay = acc_data['Y'].to_numpy()
     az = acc_data['Z'].to_numpy()
 
-    # --- Compute jerk for each axis (finite difference) ---
-    # jerk_x[t] = (ax[t+1] - ax[t]) / dt
+
     jerk_x = np.diff(ax) / dt
     jerk_y = np.diff(ay) / dt
     jerk_z = np.diff(az) / dt
 
-    # --- Jerk magnitude ---
     jerk_magnitude = np.sqrt(jerk_x ** 2 + jerk_y ** 2 + jerk_z ** 2)
 
-    # --- Descriptive statistics function ---
     def describe(signal, prefix):
         """
         prefix examples: 'jerkX', 'jerkY', 'jerkZ', 'jerkMag'
@@ -78,54 +55,29 @@ def compute_jerk_features_for_repetition(acc_data, dt, body_part):
 
     feature_dict = {}
 
-    # Axis-specific jerk features
     feature_dict.update(describe(jerk_x, "jerkX"))
     feature_dict.update(describe(jerk_y, "jerkY"))
     feature_dict.update(describe(jerk_z, "jerkZ"))
 
-    # Magnitude-based jerk features
     feature_dict.update(describe(jerk_magnitude, "jerkMag"))
 
     return feature_dict
 
 
 def extract_jerk_features_from_file(csv_path, sampling_rate, body_part):
-    """
-    Reads one accelerometer CSV for a subject & body part,
-    computes jerk features per repetition, and returns a DataFrame with:
-    Subject, Repetition, (all jerk features w/ body_part embedded in name)
 
-    Parameters
-    ----------
-    csv_path : str
-        Path to the CSV file with columns [X, Y, Z, Repetition].
-    sampling_rate : float
-        IMU sampling frequency (e.g., 100 Hz).
-    body_part : str
-        Name of the body part (e.g., 'Shoulder').
-
-    Returns
-    -------
-    features_df : pandas.DataFrame
-        DataFrame with columns: [Subject, Repetition, jerkX_mean_<body_part>, jerkX_std_<body_part>, ...].
-        One row per (Subject, Repetition).
-    """
-    # Extract subject ID from filename
     filename = os.path.basename(csv_path)
     subject_match = re.search(r"Subject_(\d+)", filename, re.IGNORECASE)
     subject_id = subject_match.group(1) if subject_match else "Unknown"
 
-    # Load CSV
     df = pd.read_csv(csv_path)
 
-    # Validate columns
     required_cols = {'X', 'Y', 'Z', 'Repetition'}
     if not required_cols.issubset(df.columns):
         raise ValueError(f"File {csv_path} missing required columns: {required_cols - set(df.columns)}.")
 
     dt = 1.0 / sampling_rate
 
-    # Group by Repetition
     grouped = df.groupby('Repetition')
 
     all_features = []
@@ -150,30 +102,8 @@ def extract_all_jerk_features(
         output_csv="OutputCSVFiles/consolidated_jerk_features.csv",
         metadata_file=None
 ):
-    """
-    Iterates over body parts, reads each CSV in 'acc' folders,
-    computes jerk features with body_part embedded in column names,
-    and pivots data so each row = one repetition (per subject),
-    containing columns for all body parts.
 
-    Parameters
-    ----------
-    base_directory : str
-        Directory containing body-part subfolders (e.g., 'processed_data_35_i').
-    body_parts : tuple or list of str
-        Body parts to process, each with an 'acc' subfolder.
-    sampling_rate : float
-        IMU sampling frequency in Hz.
-    output_csv : str
-        Path to save the consolidated wide-format CSV.
-    metadata_file : str or None
-        Optional path to a CSV file with additional subject-level info
-        (merged on 'Subject'). Set to None if not using.
-    """
-    # 1. Collect features from all subjects & body parts in a "long" DataFrame
-    #    i.e., columns: [Subject, Repetition, <jerk features>, BodyPart?].
-    #    Actually, we are embedding the body part in feature names already,
-    #    so we just need [Subject, Repetition, <all features for that body part>].
+
     all_dfs = []
 
     for bp in body_parts:
@@ -195,29 +125,11 @@ def extract_all_jerk_features(
         print("No jerk features extracted. Please check your data paths.")
         return
 
-    # 2. Concatenate all into one DataFrame
-    #    Currently, each DF has columns: [Subject, Repetition, jerkX_mean_<bp>, jerkX_median_<bp>, ...]
-    #    Possibly multiple rows for the same Subject+Repetition but *different* body parts
-    #    are each in separate DataFrames. We want to combine them "wide" so each row has
-    #    features for all body parts for that Subject+Repetition.
+
+
     combined_long_df = pd.concat(all_dfs, axis=0, ignore_index=True)
 
-    # Because we embedded the body part in each feature name, we don't actually
-    # need to pivot on "BodyPart" anymore. All columns are already unique
-    # (like jerkX_mean_Shoulder, jerkX_mean_Forearm, etc.).
-    # We just need to "merge" by (Subject, Repetition).
-    # The easiest way is group by Subject+Repetition and combine columns.
-    # However, as we did that *within* each sub-DataFrame, there's exactly 1 row
-    # for each (Subject, Repetition, body_part). So let's do a "groupby" and join them.
-    # But an easier method is to do:
-    #    combined_long_df = combined_long_df.groupby(['Subject','Repetition'], as_index=False).first()
-    # Actually, that won't suffice because we have multiple sets of columns
-    # from different body parts. We'll need a proper merge or pivot.
 
-    # Approach: We'll pivot so that Subject+Repetition is the index, and
-    # we combine the columns for each row. But because the columns are already
-    # unique for each body part, we just need one row per (Subject, Repetition).
-    # So let's do a groupby-aggregation that picks the first non-null from each column.
 
     # Step 1: set index
     combined_long_df.set_index(["Subject", "Repetition"], inplace=True)
@@ -420,10 +332,3 @@ def fill_missing_values(csv_path, output_path=None, fill_method='both'):
     # Return single DataFrame if input was single path, otherwise return list
     return processed_dfs[0] if len(processed_dfs) == 1 else processed_dfs
 
-
-# Example usage:
-# updated_df = fill_missing_values(
-#     csv_path="final_features.csv",
-#     output_path="final_features_filled.csv",
-#     fill_method='both'
-# )

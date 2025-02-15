@@ -5,27 +5,8 @@ import numpy as np
 import pandas as pd
 
 def compute_zc_features_for_repetition(emg_array, sampling_rate=1000, muscle_name="deltoideus_anterior"):
-    """
-    Compute zero crossing based features for one repetition of EMG data.
 
-    Parameters:
-      emg_array : numpy array
-          Array of EMG samples for one repetition.
-      sampling_rate : int or float
-          Sampling rate of the EMG signal.
-      muscle_name : str
-          Muscle name (used as a prefix for feature names).
 
-    Returns:
-      feats : dict
-          Dictionary containing the following features:
-            - <muscle>_ZC_Total       : Total zero crossings.
-            - <muscle>_ZC_Rate        : Zero crossing rate (per second).
-            - <muscle>_ZC_MeanInterval: Mean time interval between crossings.
-            - <muscle>_ZC_StdInterval : Standard deviation of the intervals.
-            - <muscle>_ZC_MinInterval : Minimum interval between crossings.
-            - <muscle>_ZC_MaxInterval : Maximum interval between crossings.
-    """
     feats = {}
 
     # Safety check: if signal is too short, return NaNs.

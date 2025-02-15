@@ -102,7 +102,6 @@ def compute_mav_features_for_repetition(
     feats[f"{muscle_name}_MAV_ZScoreNorm"] = np.mean(zscore_vals)
 
     # 3. MAV Slope => linear slope of abs_emg(t) over time
-    # We can do a polyfit with t vs. abs_emg
     t = np.arange(n_samples) / sampling_rate
     if n_samples > 1:
         slope, intercept = np.polyfit(t, abs_emg, 1)  # slope is slope
@@ -169,33 +168,6 @@ def compute_mav_features_for_repetition(
         mav_decay_time = np.nan
     feats[f"{muscle_name}_MAV_DecayTime"] = mav_decay_time
 
-    # # 8. Fatigue-Related MAV Features (placeholders)
-    # # Typically, you'd compare across multiple repetitions or time windows
-    # # For this single repetition, we can define:
-    # # (a) MAV_FatigueIndex => e.g., slope from start to end of repetition
-    # # Already we have MAV_Slope of abs_emg, so let's just reuse that as a placeholder
-    # # Or you might measure the decline from first half to second half. Let's do that:
-    # half_idx = n_samples // 2
-    # first_half_mean = np.mean(abs_emg[:half_idx]) if half_idx > 0 else mean_val
-    # second_half_mean = np.mean(abs_emg[half_idx:]) if half_idx < n_samples else mean_val
-    # if first_half_mean > 1e-12:
-    #     fatigue_index = (second_half_mean - first_half_mean) / first_half_mean
-    # else:
-    #     fatigue_index = np.nan
-    # feats[f"{muscle_name}_MAV_FatigueIndex"] = fatigue_index
-    #
-    # # (b) MAV_PlateauIndex => checks if last quarter vs. third quarter are stable
-    # quarter_idx = n_samples // 4
-    # third_quarter = abs_emg[2 * quarter_idx:3 * quarter_idx] if 3 * quarter_idx <= n_samples else []
-    # last_quarter = abs_emg[3 * quarter_idx:] if 3 * quarter_idx <= n_samples else []
-    # if len(third_quarter) > 0 and len(last_quarter) > 0:
-    #     third_mean = np.mean(third_quarter)
-    #     last_mean = np.mean(last_quarter)
-    #     # if difference is small, it might "plateau"
-    #     plateau_index = last_mean - third_mean
-    # else:
-    #     plateau_index = np.nan
-    # feats[f"{muscle_name}_MAV_PlateauIndex"] = plateau_index
 
     return feats
 

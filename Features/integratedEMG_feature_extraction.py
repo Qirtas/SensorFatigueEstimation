@@ -24,7 +24,6 @@ def compute_emg_features_for_repetition(
       9) IEMG slope (linear fit slope of absolute EMG or cumulative IEMG)
       10) Cumulative IEMG (final value)
       11) Time-to-Peak IEMG
-      * Additional placeholders for ratio or symmetry-based features.
 
     Returns a dictionary { feature_name : value }.
     """
@@ -58,10 +57,7 @@ def compute_emg_features_for_repetition(
     feats[f"{muscle_name}_IEMG_Per_Second"] = iemg_per_sec
 
     # 3) Normalized IEMG [0..1] within this repetition
-    #    We'll store two approaches:
-    #    - (A) The entire EMG signal min-max scaled in [0..1] is optional, or
-    #    - (B) The max abs EMG as a reference for normalization
-    # For demonstration, we'll do a min-max over abs_emg.
+
     min_val = np.min(abs_emg)
     max_val = np.max(abs_emg)
     if max_val > min_val:
@@ -69,7 +65,7 @@ def compute_emg_features_for_repetition(
     else:
         # edge case if all values are equal
         norm_emg = np.zeros_like(abs_emg)
-    # We can store the average or final value of the normalized signal, or both
+
     feats[f"{muscle_name}_IEMG_NormalizedMean"] = np.mean(norm_emg)
 
     # 4) Mean Absolute Value (MAV)
@@ -117,9 +113,6 @@ def compute_emg_features_for_repetition(
     time_to_peak = idx_peak / sampling_rate
     feats[f"{muscle_name}_IEMG_TimeToPeak"] = time_to_peak
 
-    # *** Additional placeholders ***
-    # IEMG Ratio: ratio between this muscle's IEMG and another muscle's IEMG might require cross-muscle data
-    # IEMG Symmetry: compare left vs. right if relevant
 
     return feats
 
