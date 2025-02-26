@@ -1682,20 +1682,17 @@ if __name__ == "__main__":
     # # *********************
 
 
-    folder_path = "FeatureImportance"
-    feature_df = load_feature_importance_scores(folder_path)
-
-    top_features_df = aggregate_and_select_features(feature_df, top_n=15)
-
-    normalized_df = normalize_scores(top_features_df)
-
-    desired_order = ['35Internal', '35External', '45Internal', '45External', '35+45', 'all', 'Aggregated_Importance']
-    normalized_df = normalized_df.reindex(columns=desired_order)
-
-    create_heatmap(normalized_df, title="")
-
-
-
+    # folder_path = "FeatureImportance"
+    # feature_df = load_feature_importance_scores(folder_path)
+    #
+    # top_features_df = aggregate_and_select_features(feature_df, top_n=15)
+    #
+    # normalized_df = normalize_scores(top_features_df)
+    #
+    # desired_order = ['IR 30-40%', 'ER 30-40%', 'IR 40-50%', 'ER 40-50%', '35+45', 'all', 'Aggregated_Importance']
+    # normalized_df = normalized_df.reindex(columns=desired_order)
+    #
+    # create_heatmap(normalized_df, title="")
 
 
 
@@ -1843,8 +1840,71 @@ print("grouped_bar_chart_rmse.png")
 
 
 # file_path = 'AllMovements/CombinedFeaturesWithConditionColumn.csv'
-# internal_metrics, external_metrics = prepare_and_train_models(file_path)
+#internal_metrics, external_metrics = prepare_and_train_models(file_path)
 
 
 
 
+# ****************************
+    #   Checking Correlation
+    # # *********************
+
+
+df = pd.read_csv("AllMovements/CombinedFeaturesWithConditionColumn.csv")
+correlation = np.corrcoef(df["Z_Upperarm_acc_Mean"], df["Z_Shoulder_acc_Mean"])[0, 1]
+print(f"Pearson Correlation in AllMovements Features between Z_Upperarm_acc_Mean and Z_Shoulder_acc_Mean: {correlation:.2f}")
+
+
+df = pd.read_csv("35Internal/Features/Extracted/allmerged_features_with_borg.csv")
+correlation = np.corrcoef(df["Z_Upperarm_acc_Mean"], df["Z_Shoulder_acc_Mean"])[0, 1]
+print(f"Pearson Correlation in 35Internal between Z_Upperarm_acc_Mean and Z_Shoulder_acc_Mean: {correlation:.2f}")
+
+
+df = pd.read_csv("45Internal/Features/Extracted/allmerged_features_with_borg.csv")
+correlation = np.corrcoef(df["Z_Upperarm_acc_Mean"], df["Z_Shoulder_acc_Mean"])[0, 1]
+print(f"Pearson Correlation in 45Internal between Z_Upperarm_acc_Mean and Z_Shoulder_acc_Mean: {correlation:.2f}")
+
+df = pd.read_csv("35External/Features/Extracted/allmerged_features_with_borg.csv")
+correlation = np.corrcoef(df["Z_Upperarm_acc_Mean"], df["Z_Shoulder_acc_Mean"])[0, 1]
+print(f"Pearson Correlation in 35External between Z_Upperarm_acc_Mean and Z_Shoulder_acc_Mean: {correlation:.2f}")
+
+
+
+# ****************************
+    #   Checking If Fatigue Causing Reduced Acceleration
+    # # *********************
+
+#
+# df = pd.read_csv("AllMovements/CombinedFeaturesWithConditionColumn.csv")
+# df = df.dropna(subset=["Borg", "Z_Upperarm_acc_Mean", "Z_Shoulder_acc_Mean"])
+#
+# # Compute Pearson correlation between fatigue scores and acceleration features
+# corr_upperarm = np.corrcoef(df["Borg"], df["Z_Upperarm_acc_Mean"])[0, 1]
+# corr_shoulder = np.corrcoef(df["Borg"], df["Z_Shoulder_acc_Mean"])[0, 1]
+#
+# print(f"Correlation between Borg RPE and Z_Upperarm_acc_Mean: {corr_upperarm:.2f}")
+# print(f"Correlation between Borg RPE and Z_Shoulder_acc_Mean: {corr_shoulder:.2f}")
+#
+# from scipy.stats import ttest_ind
+#
+# # Define fatigue threshold (adjust if needed)
+# fatigue_threshold = df["Borg"].median()
+#
+# # Split data into low and high fatigue groups
+# low_fatigue = df[df["Borg"] < fatigue_threshold]["Z_Upperarm_acc_Mean"]
+# high_fatigue = df[df["Borg"] >= fatigue_threshold]["Z_Upperarm_acc_Mean"]
+#
+# # Perform independent t-test
+# t_stat, p_value = ttest_ind(low_fatigue, high_fatigue, equal_var=False)
+#
+# print(f"T-test results for Z_Upperarm_acc_Mean:")
+# print(f"T-statistic: {t_stat:.2f}, P-value: {p_value:.4f}")
+#
+# # Repeat for shoulder acceleration
+# low_fatigue_shoulder = df[df["Borg"] < fatigue_threshold]["Z_Shoulder_acc_Mean"]
+# high_fatigue_shoulder = df[df["Borg"] >= fatigue_threshold]["Z_Shoulder_acc_Mean"]
+#
+# t_stat_shoulder, p_value_shoulder = ttest_ind(low_fatigue_shoulder, high_fatigue_shoulder, equal_var=False)
+#
+# print(f"T-test results for Z_Shoulder_acc_Mean:")
+# print(f"T-statistic: {t_stat_shoulder:.2f}, P-value: {p_value_shoulder:.4f}")
